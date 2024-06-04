@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
         gameFlow();
 
         if (aiMode && isGameActive) {
-            AI()
+            setTimeout(() => {
+                AI()
+            }, 500)
         }
     }
 
