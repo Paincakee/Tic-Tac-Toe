@@ -88,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Prioritize winning
         let move = checkWinnable(currentPlayer);
         if (move !== false) {
-            console.log('win move')
             return move;
         }
 
@@ -96,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let opponent = currentPlayer === 'X' ? 'O' : 'X';
         move = checkWinnable(opponent);
         if (move !== false) {
-            console.log('block move')
             return move;
         }
 
@@ -151,8 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(emptyCells.length > 0) {
             let  winnableIndex = getAiMove()
             if(winnableIndex || winnableIndex === 0){
-                console.log(`index: ${ winnableIndex}`)
-
                 board[winnableIndex] = 'O'
                 document.querySelector(`.cell[data-index='${winnableIndex}']`).innerText = 'O';
                 gameFlow()
