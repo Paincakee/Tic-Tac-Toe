@@ -4,10 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPlayer = "X";
     let board = ['', '', '', '', '', '', '', '', ''];
     let isGameActive = true;
+    let clickAble = true
     let aiMode = true;
-    let aiLevel = 'level-1';
+    let aiLevel = 'level-2';
     document.getElementById(`player-${currentPlayer}`).classList.add('is-active');
-
 
     const winConditions = [
         [0, 1, 2],
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleClick = (e) => {
         const index = e.target.dataset.index;
 
-        if ('' !== board[index] || !isGameActive) {
+        if ('' !== board[index] || !isGameActive || !clickAble) {
             return;
         }
 
@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.innerText = currentPlayer;
 
         gameFlow();
+        clickAble = !clickAble;
 
         if (aiMode && isGameActive) {
             setTimeout(() => {
@@ -65,14 +66,62 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
+    const checkWinnable = (player) => {
+        for (let i = 0; i < winConditions.length; i++) {
+            const [a, b, c] = winConditions[i];
+
+            // Check if player can win or needs to block by ensuring two are the same and the third is empty
+            if (board[a] === player && board[b] === player && board[c] === '') {
+                return c;
+            }
+            if (board[a] === player && board[c] === player && board[b] === '') {
+                return b;
+            }
+            if (board[b] === player && board[c] === player && board[a] === '') {
+                return a;
+            }
+        }
+        return false;
+    }
+
+    const getAiMove = () => {
+        // Prioritize winning
+        let move = checkWinnable(currentPlayer);
+        if (move !== false) {
+            console.log('win move')
+            return move;
+        }
+
+        // Then block opponent from winning
+        let opponent = currentPlayer === 'X' ? 'O' : 'X';
+        move = checkWinnable(opponent);
+        if (move !== false) {
+            console.log('block move')
+            return move;
+        }
+
+        return false;
+    }
+
+    const randomPlacement = (emptyCells) => {
+        let randomIndex = Math.floor(Math.random() * emptyCells.length)
+        const move = emptyCells[randomIndex];
+
+        board[move] = 'O'
+        document.querySelector(`.cell[data-index='${move}']`).innerText = 'O';
+
+        gameFlow()
+        clickAble = !clickAble;
+    }
     const resetGame = () => {
         if (currentPlayer === "O") {
             toggleActivePlayer();  // Ensure the active player is reset to "X"
         }
         currentPlayer = "X";
         board = ['', '', '', '', '', '', '', '', ''];
-        cells.forEach(cell => cell.innerText = '')
+        cells.forEach(cell => cell.innerText = '');
         isGameActive = true;
+        clickAble = true;
     }
 
     const toggleActivePlayer = () => {
@@ -84,6 +133,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const AI = () => {
         if (aiLevel === 'level-1') {
             level1Ai();
+        } else if (aiLevel === 'level-2') {
+            level2Ai();
         }
     }
 
@@ -91,13 +142,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const level1Ai = () => {
         const emptyCells = getEmptyCells();
         if(emptyCells.length > 0) {
-            let randomIndex = Math.floor(Math.random() * emptyCells.length)
-            const move = emptyCells[randomIndex];
+            randomPlacement(emptyCells)
+        }
+    }
 
-            board[move] = 'O'
-            document.querySelector(`.cell[data-index='${move}']`).innerText = 'O';
+    const level2Ai = () => {
+        const emptyCells = getEmptyCells();
+        if(emptyCells.length > 0) {
+            let  winnableIndex = getAiMove()
+            if(winnableIndex || winnableIndex === 0){
+                console.log(`index: ${ winnableIndex}`)
 
-            gameFlow()
+                board[winnableIndex] = 'O'
+                document.querySelector(`.cell[data-index='${winnableIndex}']`).innerText = 'O';
+                gameFlow()
+                clickAble = !clickAble;
+            } else {
+                randomPlacement(emptyCells)
+            }
         }
     }
 
