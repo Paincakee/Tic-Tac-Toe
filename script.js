@@ -4,9 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentPlayer = "X";
     let board = ['', '', '', '', '', '', '', '', ''];
     let isGameActive = true;
-    let clickAble = true
+    let clickAble = true;
     let aiMode = true;
-    let aiLevel = 'level-2';
+    let aiLevel = 'level-3';
+
     document.getElementById(`player-${currentPlayer}`).classList.add('is-active');
 
     const winConditions = [
@@ -23,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleClick = (e) => {
         const index = e.target.dataset.index;
 
-        if ('' !== board[index] || !isGameActive || !clickAble) {
+        if (board[index] !== '' || !isGameActive || !clickAble) {
             return;
         }
 
@@ -31,12 +32,13 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.innerText = currentPlayer;
 
         gameFlow();
+
         clickAble = !clickAble;
 
         if (aiMode && isGameActive) {
             setTimeout(() => {
-                AI()
-            }, 500)
+                AI();
+            }, 500);
         }
     }
 
@@ -52,14 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 alert('Draw');
             }, 50);
         } else {
-            toggleActivePlayer()
+            toggleActivePlayer();
         }
     }
 
     const winCheck = () => {
         for (let i = 0; i < winConditions.length; i++) {
             const [a, b, c] = winConditions[i];
-            if(board[a] && board[a] === board[b] && board[a] === board[c] ){
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
                 return true;
             }
         }
@@ -70,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < winConditions.length; i++) {
             const [a, b, c] = winConditions[i];
 
-            // Check if player can win or needs to block by ensuring two are the same and the third is empty
             if (board[a] === player && board[b] === player && board[c] === '') {
                 return c;
             }
@@ -85,13 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const getAiMove = () => {
-        // Prioritize winning
         let move = checkWinnable(currentPlayer);
         if (move !== false) {
             return move;
         }
 
-        // Then block opponent from winning
         let opponent = currentPlayer === 'X' ? 'O' : 'X';
         move = checkWinnable(opponent);
         if (move !== false) {
@@ -102,24 +101,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const randomPlacement = (emptyCells) => {
-        let randomIndex = Math.floor(Math.random() * emptyCells.length)
+        let randomIndex = Math.floor(Math.random() * emptyCells.length);
         const move = emptyCells[randomIndex];
 
-        board[move] = 'O'
-        document.querySelector(`.cell[data-index='${move}']`).innerText = 'O';
+        board[move] = currentPlayer;
+        document.querySelector(`.cell[data-index='${move}']`).innerText = currentPlayer;
 
-        gameFlow()
+        gameFlow();
         clickAble = !clickAble;
     }
+
     const resetGame = () => {
-        if (currentPlayer === "O") {
-            toggleActivePlayer();  // Ensure the active player is reset to "X"
-        }
         currentPlayer = "X";
         board = ['', '', '', '', '', '', '', '', ''];
         cells.forEach(cell => cell.innerText = '');
         isGameActive = true;
         clickAble = true;
+        document.querySelectorAll('.player').forEach(el => el.classList.remove('is-active'));
+        document.getElementById(`player-${currentPlayer}`).classList.add('is-active');
     }
 
     const toggleActivePlayer = () => {
@@ -133,31 +132,42 @@ document.addEventListener('DOMContentLoaded', () => {
             level1Ai();
         } else if (aiLevel === 'level-2') {
             level2Ai();
+        } else if (aiLevel === 'level-3') {
+            level3Ai();
         }
     }
 
-
     const level1Ai = () => {
         const emptyCells = getEmptyCells();
-        if(emptyCells.length > 0) {
-            randomPlacement(emptyCells)
+        if (emptyCells.length > 0) {
+            randomPlacement(emptyCells);
         }
     }
 
     const level2Ai = () => {
         const emptyCells = getEmptyCells();
-        if(emptyCells.length > 0) {
-            let  winnableIndex = getAiMove()
-            if(winnableIndex || winnableIndex === 0){
-                board[winnableIndex] = 'O'
-                document.querySelector(`.cell[data-index='${winnableIndex}']`).innerText = 'O';
-                gameFlow()
+        if (emptyCells.length > 0) {
+            let winnableIndex = getAiMove();
+            if (winnableIndex || winnableIndex === 0) {
+                board[winnableIndex] = currentPlayer;
+                document.querySelector(`.cell[data-index='${winnableIndex}']`).innerText = currentPlayer;
+                gameFlow();
                 clickAble = !clickAble;
             } else {
-                randomPlacement(emptyCells)
+                randomPlacement(emptyCells);
             }
         }
     }
+
+    const level3Ai = () => {
+        const move = bestMove();
+        if (move !== undefined) {
+            board[move] = currentPlayer;
+            document.querySelector(`.cell[data-index='${move}']`).innerText = currentPlayer;
+            gameFlow();
+            clickAble = !clickAble;
+        }
+    };
 
     const getEmptyCells = () => {
         let emptyCells = [];
@@ -166,10 +176,68 @@ document.addEventListener('DOMContentLoaded', () => {
                 emptyCells.push(i);
             }
         }
-
         return emptyCells;
     }
 
+    const minimax = (newBoard, depth, isMaximizing) => {
+        let scores = { X: -10, O: 10, draw: 0 };
+        let result = checkWinner();
+        if (result !== null) {
+            return scores[result];
+        }
+
+        if (isMaximizing) {
+            let bestScore = -Infinity;
+            for (let i = 0; i < newBoard.length; i++) {
+                if (newBoard[i] === '') {
+                    newBoard[i] = currentPlayer;
+                    let score = minimax(newBoard, depth + 1, false);
+                    newBoard[i] = '';
+                    bestScore = Math.max(score, bestScore);
+                }
+            }
+            return bestScore;
+        } else {
+            let bestScore = Infinity;
+            for (let i = 0; i < newBoard.length; i++) {
+                if (newBoard[i] === '') {
+                    newBoard[i] = currentPlayer === 'X' ? 'O' : 'X';
+                    let score = minimax(newBoard, depth + 1, true);
+                    newBoard[i] = '';
+                    bestScore = Math.min(score, bestScore);
+                }
+            }
+            return bestScore;
+        }
+    };
+
+    const bestMove = () => {
+        let bestScore = -Infinity;
+        let move;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                board[i] = currentPlayer;
+                let score = minimax(board, 0, false);
+                board[i] = '';
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = i;
+                }
+            }
+        }
+        return move;
+    };
+
+    const checkWinner = () => {
+        for (let i = 0; i < winConditions.length; i++) {
+            const [a, b, c] = winConditions[i];
+            if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                return board[a];
+            }
+        }
+        return board.includes('') ? null : 'draw';
+    };
+
     cells.forEach(cell => cell.addEventListener('click', handleClick));
     resetBtn.addEventListener('click', resetGame);
-})
+});
